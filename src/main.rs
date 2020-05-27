@@ -97,6 +97,14 @@ impl Service<Request<Body>> for MicroService {
                                 response_with_code(StatusCode::NOT_FOUND)
                             }
                         },
+                        (&Method::PUT, Some(id)) => {
+                            if let Some(data) = users.get_mut(id){
+                                *data = UserData;
+                                response_with_code(StatusCode::OK)
+                            } else {
+                                response_with_code(StatusCode::NOT_FOUND)
+                            }
+                        },
                         _ => {
                             response_with_code(StatusCode::METHOD_NOT_ALLOWED)
                         }
