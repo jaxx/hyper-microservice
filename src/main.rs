@@ -7,10 +7,10 @@ use hyper::{Body, Method, Request, Response, Server, StatusCode};
 use hyper::service::Service;
 use slab::Slab;
 
+#[derive(Debug)]
 struct UserData;
 
 type UserId = u64;
-
 type UserDb = Arc<Mutex<Slab<UserData>>>;
 
 
@@ -29,7 +29,29 @@ const INDEX: &str = r#"
 const USER_PATH: &str = "/user/";
 
 #[derive(Debug)]
-pub struct MicroService;
+pub struct MicroService {
+    user_db: UserDb
+}
+
+pub struct MakeMicroService {
+    user_db: UserDb
+}
+
+impl MicroService {
+    fn new(user_db: UserDb) -> Self {
+        MicroService {
+            user_db
+        }
+    }
+}
+
+impl MakeMicroService {
+    fn new(user_db: UserDb) -> Self {
+        MakeMicroService {
+            user_db
+        }
+    }
+}
 
 impl Service<Request<Body>> for MicroService {
     type Response = Response<Body>;
@@ -51,10 +73,12 @@ impl Service<Request<Body>> for MicroService {
                                                      .parse::<UserId>()
                                                      .ok()
                                                      .map(|x| x as usize);
-                    
+
+                    let mut users = self.user_db.lock().unwrap();
+
                     match (method, user_id) {
                         (&Method::POST, None) => {
-                            let id = 0;
+                            let id = users.insert(UserData);
                             Response::new(id.to_string().into())
                         },
                         _ => {
@@ -72,8 +96,6 @@ impl Service<Request<Body>> for MicroService {
     }
 }
 
-pub struct MakeMicroService;
-
 impl<T> Service<T> for MakeMicroService {
     type Response = MicroService;
     type Error = std::io::Error;
@@ -84,7 +106,7 @@ impl<T> Service<T> for MakeMicroService {
     }
 
     fn call(&mut self, _: T) -> Self::Future {
-        future::ok(MicroService)
+        future::ok(MicroService::new(self.user_db.clone()))
     }
 }
 
@@ -93,7 +115,7 @@ async fn main() {
     let user_db: UserDb = Arc::new(Mutex::new(Slab::new()));
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 8080));
-    let server = Server::bind(&addr).serve(MakeMicroService);
+    let server = Server::bind(&addr).serve(MakeMicroService::new(user_db));
 
     if let Err(e) = server.await {
         eprintln!("server error: {}", e);
