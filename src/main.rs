@@ -1,3 +1,4 @@
+use std::fmt;
 use std::net::SocketAddr;
 use std::sync::{Arc, Mutex};
 use std::task::{Context, Poll};
@@ -52,6 +53,12 @@ impl MakeMicroService {
     }
 }
 
+impl fmt::Display for UserData {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("{}")
+    }
+}
+
 impl Service<Request<Body>> for MicroService {
     type Response = Response<Body>;
     type Error = hyper::Error;
@@ -79,6 +86,16 @@ impl Service<Request<Body>> for MicroService {
                         (&Method::POST, None) => {
                             let id = users.insert(UserData);
                             Response::new(id.to_string().into())
+                        },
+                        (&Method::POST, Some(_)) => {
+                            response_with_code(StatusCode::BAD_REQUEST)
+                        },
+                        (&Method::GET, Some(id)) => {
+                            if let Some(data) = users.get(id) {
+                                Response::new(data.to_string().into())
+                            } else {
+                                response_with_code(StatusCode::NOT_FOUND)
+                            }
                         },
                         _ => {
                             response_with_code(StatusCode::METHOD_NOT_ALLOWED)
