@@ -7,12 +7,8 @@ use hyper::{Body, Method, Request, Response, Server, StatusCode};
 use hyper::service::Service;
 use slab::Slab;
 
-#[derive(Debug)]
-struct UserData;
-
 type UserId = u64;
 type UserDb = Arc<Mutex<Slab<UserData>>>;
-
 
 const INDEX: &str = r#"
 <!doctype html>
@@ -27,6 +23,9 @@ const INDEX: &str = r#"
 "#;
 
 const USER_PATH: &str = "/user/";
+
+#[derive(Debug)]
+struct UserData;
 
 #[derive(Debug)]
 pub struct MicroService {
