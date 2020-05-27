@@ -105,6 +105,14 @@ impl Service<Request<Body>> for MicroService {
                                 response_with_code(StatusCode::NOT_FOUND)
                             }
                         },
+                        (&Method::DELETE, Some(id)) => {
+                            if users.contains(id) {
+                                users.remove(id);
+                                response_with_code(StatusCode::OK)
+                            } else {
+                                response_with_code(StatusCode::NOT_FOUND)
+                            }
+                        },
                         _ => {
                             response_with_code(StatusCode::METHOD_NOT_ALLOWED)
                         }
